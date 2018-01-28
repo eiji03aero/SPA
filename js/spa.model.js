@@ -27,10 +27,10 @@ spa.model = (function () {
 
   personProto = {
     get_is_user: function() {
-      return this.cid === stateMap.anon_user.cid;
+      return this.cid === stateMap.user.cid;
     },
     get_is_anon: function() {
-      return hits.cid === stateMap.anon_user.cid;
+      return this.cid === stateMap.anon_user.cid;
     }
   };
   makePerson = function(person_map) {
