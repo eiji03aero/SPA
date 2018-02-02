@@ -3,6 +3,7 @@
  * SPAのチャットモデルモジュール
  */
 
+
 /* jslint browser: true, continue: true,
 devel: true, indent: 2, maxerr: 5,
 newcap: true, nomen: true, plusplus: true,
@@ -27,11 +28,12 @@ spa.model = (function () {
       people_cid_map: {},
       people_db: TAFFY(),
       user :null,
+      is_connected: false,
     },
 
     isFakeData = true,
     personProto, makeCid, clearPeopleDb, completeLogin,
-    makePerson, removePerson, people, initModule;
+    makePerson, removePerson, people, chat, initModule;
 
   //========================================
   // Module variables End
@@ -193,6 +195,115 @@ spa.model = (function () {
     };
   }());
 
+  // chat Object API
+  // ========================================
+  // chat Object can be used with [spa.model.chat]
+  // chat Object provides method and events that handle chat messaging.
+  // public methods are as follow
+  // - join (): Join chat room. This routine establishes the event publisher for
+  //    [spa-listchange], [spa-updatechat] that build chat protocol including
+  //    communicating backend server.
+  //    Returns [false] when current user is anonymous.
+  // - get_chatee(): Returns the user object with whom user is chatting.
+  //    If user is not found in list, returns, [null].
+  // - set_chatee(): Set the target chatee identified with [person_id].
+  //    Returns [null] if user is not found.
+  //    Returns [false] if setee is the same user.
+  //    Publishes [spa-setchatee] event.
+  // - send_msg([msg_text]): Sends chat message to the target user.
+  //    Publishes [spa-updatechat] event.
+  //    Returns [false] if the target user is null.
+  // - update_avatar([update_avtr_map]): Sends backend [update_avtr_map] object.
+  //    As a consequence, [spa-listchange] event will be published containing
+  //    updated user list and avatar data.
+  //    [update_avtr_map] format must be:
+  //      { person_id: person_id, css_map: css_map }
+  //
+  // This Object publishes the events as follow...
+  // - spa-setchatee: Will be published when new target user is set.
+  //    Provides data formatted as follows...
+  //      { old_chatee: old_chatee_person_object,
+  //        new_chatee: new_chatee_person_object }
+  // - spa-listchange: Published when online userlist changed.
+  //    Registerer should acquire the updated data from [people_db]
+  // - spa-updatechat: Published when new message is either sent or received.
+  //    Data format is as follows...
+  //      { dest_id: chatee_id,
+  //        dest_name: chatee_name,
+  //        sender_id: sender_id,
+  //        msg_text: message_content }
+  //
+  chat = (function () {
+    var
+      _publish_listchange,
+      _update_list, _leave_chat, join_chat;
+
+    // Begin Internal methods
+    _update_list = function (arg_list) {
+      var i, person_map, make_person_map,
+        people_list = arg_list[0];
+
+      clearPeopleDb();
+
+      PERSON:
+      for (i = 0; i < people_list.length; i++) {
+        person_map = people_list[i];
+
+        if (! person_map.name) { continue PERSON; }
+
+        // If user is identified, update the css_map and skip the rest.
+        if (stateMap.user && stateMap.user.id === person_map._id) {
+          stateMap.user.css_map = person_map.css_map;
+          continue PERSON;
+        }
+
+        make_person_map = {
+          cid: person_map._id,
+          css_map: person_map.css_map,
+          id: person_map._id,
+          name: person_map.name
+        };
+
+        makePerson(make_person_map);
+      }
+
+      stateMap.people_db.sort('name');
+    };
+
+    _publish_listchange = function (arg_list) {
+      _update_list(arg_list);
+      $.gevent.publish('spa-listchange', [arg_list]);
+    };
+    // End Internal methods
+
+    _leave_chat = function () {
+      var sio = isFakeData ? spa.fake.mockSio : spa.data.getsio();
+      stateMap.is_connected = false;
+      if (sio) { sio.emit('leavechat')};
+    };
+
+    join_chat = function () {
+      var sio;
+
+      if (stateMap.is_connected) { return false; }
+
+      if (stateMap.user.get_is_anon()) {
+        console.warn('User must be defined before joining chat');
+        return false;
+      }
+
+      sio = isFakeData ? spa.fake.mockSio : spa.data.getSio();
+      sio.on('listchange', _publish_listchange);
+      stateMap.is_connected = true;
+      return true;
+    }
+
+    return {
+      _leave: _leave_chat,
+      join: join_chat
+    };
+  }());
+
   initModule = function () {
     var i, people_list, person_map;
 
@@ -203,23 +314,11 @@ spa.model = (function () {
       name  : 'anonymous'
     });
     stateMap.user = stateMap.anon_user;
-
-    if ( isFakeData ) {
-      people_list = spa.fake.getPeopleList();
-      for ( i = 0; i < people_list.length; i++ ) {
-        person_map = people_list[ i ];
-        makePerson({
-          cid     : person_map._id,
-          css_map : person_map.css_map,
-          id      : person_map._id,
-          name    : person_map.name
-        });
-      }
-    }
   };
 
   return {
     initModule : initModule,
+    chat       : chat,
     people     : people
   };
 }());
