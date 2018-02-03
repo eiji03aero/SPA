@@ -45,7 +45,7 @@ spa.fake = (function () {
   ];
 
   mockSio = (function () {
-    var on_sio, emit_sio,
+    var on_sio, emit_sio, emit_mock_msg,
       send_listchange, listchange_idto,
       callback_map = {};
 
@@ -69,6 +69,49 @@ spa.fake = (function () {
           callback_map.userupdate([person_map]);
         }, 3000 );
       }
+
+      // Responds [updatechat] event after 2s of delay.
+      // Sends back [user] data.
+      if (msg_type === 'updatechat' && callback_map.updatechat) {
+        setTimeout(function () {
+          var user = spa.model.people.get_user();
+          callback_map.updatechat([{
+            dest_id: user.id,
+            dest_name: user.name,
+            sender_id: data.dest_id,
+            msg_text: 'Thanks for the note, ' + user.name,
+          }]);
+        }, 2000);
+      }
+
+      if (msg_type === 'leavechat') {
+        // Reset [login] condition
+        delete callback_map.listchange;
+        delete callback_map.updatechat;
+
+        if (listchange_idto) {
+          clearTimout(listchange_idto);
+          listchange_idto = undefined;
+        }
+        send_listchange();
+      }
+    };
+
+    // Tries to mock send message function every 8s.
+    // Once it succeeds, it wont repeat again.
+    emit_mock_msg = function () {
+      setTimeout(function () {
+        var user = spa.model.people.get_user();
+        if (callback_map.updatechat) {
+          callback_map.updatechat([{
+            dest_id: user.id,
+            dest_name: user.name,
+            sender_id: 'id_04',
+            msg_text: 'Hi there ' + user.name + '! Wilma here.',
+          }]);
+        }
+        else { emit_mock_msg(); }
+      }, 8000);
     };
 
     // Use [listchange] callback per 1s.
@@ -77,6 +120,7 @@ spa.fake = (function () {
       listchange_idto = setTimeout(function () {
         if (callback_map.listchange) {
           callback_map.listchange([peopleList]);
+          emit_mock_msg();
           listchange_idto = undefined;
         }
         else {
@@ -91,6 +135,6 @@ spa.fake = (function () {
   }());
 
   return {
-    mockSio       : mockSio
+    mockSio : mockSio
   };
 }());
