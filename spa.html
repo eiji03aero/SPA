@@ -30,6 +30,19 @@
     <script src="js/spa.avtr.js"></script>
     <script>
       $(function() { spa.initModule($('#spa')); });
+      function testing () {
+        var $t = $('<div/>');
+
+        $.gevent.subscribe($t, 'spa-login', function (e,u) {
+          console.log('hello', u.name);
+        });
+
+        $.gevent.subscribe($t, 'spa-listchange', function (e,l) {
+          console.log('list change: ', l);
+        });
+
+        return false
+      }
     </script>
   </head>
 

@@ -1,13 +1,6 @@
 /*
 * spa.chat.js
 * 汎用JavaScriptユーティリティ
-*
-* Michael S. Mikowski - mmikowski at gmail dot com
-* これらは、Webからひらめきを得て、
-* 1998年から作成、コンパイル、アップデートを行ってきたルーチン。
-*
-* MITライセンス
-*
 */
 
 /* jslint browser: true, continue: true,
