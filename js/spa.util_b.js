@@ -30,10 +30,12 @@ spa.util_b = (function() {
     },
     decodeHtml, encodeHtml, getEmSize;
 
+  // Make [noamp_map]----------
   configMap.encode_noamp_map = $.extend(
     {}, configMap.html_encode_map
   );
   delete configMap.encode_noamp_map['&'];
+  // End [noamp_map]----------
 
 //---------------- END MODULE SCOPE VARIABLES ----------------
 
@@ -43,8 +45,8 @@ spa.util_b = (function() {
 // End Utility /name/
 
 // Begin Utility /decodeHtml/
-// Encoding HTML entity so that it can be conpatible with browsers
-  decodeHtml = function(str) {
+// Encoding HTML entity so that it can be compatible with browsers
+  decodeHtml = function (str) {
     return $('<div/>').html(str || '').text();
   };
 // End Utility /decodeHtml/
@@ -52,7 +54,7 @@ spa.util_b = (function() {
 // Begin Utility /encodeHtml/
 // This is the only path encoder that is for html entities
 // This method translates the designated length of string
-  encodeHtml = function(input_arg_str, exclude_map) {
+  encodeHtml = function (input_arg_str, exclude_map) {
     var
       input_str = String(input_arg_str),
       regex, lookup_map;
@@ -66,7 +68,7 @@ spa.util_b = (function() {
       regex = configMap.regex_encode_html;
     }
     return input_str.replace(regex,
-      function(match, name) {
+      function (match, name) {
         return lookup_map[match] || '';
       }
     );
@@ -74,7 +76,7 @@ spa.util_b = (function() {
 // End Utility /encodeHtml/
 
 // Begin Utility /getEmSize/
-// convert em size into pixel and return it
+// convert [em] size into [pixel] and return it
   getEmSize = function(elem) {
     return Number(
       getComputedStyle(elem, '').fontSize.match(/\d*\.?\d*/)[0]
