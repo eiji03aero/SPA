@@ -1,78 +1,74 @@
 /*
  * spa.model.js
- * SPAのチャットモデルモジュール
- */
-
-
-/* jslint browser: true, continue: true,
-devel: true, indent: 2, maxerr: 5,
-newcap: true, nomen: true, plusplus: true,
-regexp: true, sloppy: true, vars: false,
-white: true
+ * Model module
 */
 
-/*global TAFFY, $, spa*/
+/*jslint         browser : true, continue : true,
+  devel  : true, indent  : 2,    maxerr   : 50,
+  newcap : true, nomen   : true, plusplus : true,
+  regexp : true, sloppy  : true, vars     : false,
+  white  : true
+*/
+/*global TAFFY, $, spa */
 
 spa.model = (function () {
   'use strict';
-
-  //========================================
-  // Module variables
-  //========================================
-
   var
-    configMap = { anon_id: 'a0' },
-    stateMap = {
-      anon_user: null,
-      cid_serial: 0,
-      people_cid_map: {},
-      people_db: TAFFY(),
-      user :null,
-      is_connected: false,
+    configMap = { anon_id : 'a0' },
+    stateMap  = {
+      anon_user      : null,
+      cid_serial     : 0,
+      is_connected   : false,
+      people_cid_map : {},
+      people_db      : TAFFY(),
+      user           : null
     },
 
     isFakeData = true,
+
     personProto, makeCid, clearPeopleDb, completeLogin,
     makePerson, removePerson, people, chat, initModule;
 
-  //========================================
-  // Module variables End
-  //========================================
-
-
-  //========================================
-  // people Object API
-  //========================================
-  // people Object can be used through [spa.model.people]
-  // people Object handles the collection of [person] object and publishes events related to that.
-  // Public method includes following...
-  // - get_user(): Returns the current user. If not defined, returns anon user.
-  // - get_db(): Returns the sorted collection of TAFFY DB.
-  // - get_by_cid( [cid] ): Returns the person Object designated [cid]
-  // - login( [user_name] ): Allow the user login with the name given.
-  //    The current user Object would reflect the new ID.
-  //    If Login succeeded, [spa-login] event will be published.
-  // - logout(): Make the current user to anon one.
-  //    This method publishes [spa-logout] event.
+  // The people object API
+  // ---------------------
+  // The people object is available at spa.model.people.
+  // The people object provides methods and events to manage
+  // a collection of person objects. Its public methods include:
+  //   * get_user() - return the current user person object.
+  //     If the current user is not signed-in, an anonymous person
+  //     object is returned.
+  //   * get_db() - return the TaffyDB database of all the person
+  //     objects - including the current user - presorted.
+  //   * get_by_cid( <client_id> ) - return a person object with
+  //     provided unique id.
+  //   * login( <user_name> ) - login as the user with the provided
+  //     user name. The current user object is changed to reflect
+  //     the new identity. Successful completion of login
+  //     publishes a 'spa-login' global custom event.
+  //   * logout()- revert the current user object to anonymous.
+  //     This method publishes a 'spa-logout' global custom event.
   //
-  // The events this object publishes includes...
-  // - spa-login: When login feature succeeds. Refreshed User Object will accompany.
-  // - spa-logout: When logout finishes.Provide the previous user Object.
+  // jQuery global custom events published by the object include:
+  //   * spa-login - This is published when a user login process
+  //     completes. The updated user object is provided as data.
+  //   * spa-logout - This is published when a logout completes.
+  //     The former user object is provided as data.
   //
-  // person Object represents users.
-  // They come with these methods...
-  // - get_is_user(): Returns true if the object is current user.
-  // - get_is_anon(): Returns fale if the object is anonymous user.
-  // 
-  // person Object contains the properties following...
-  // - cid: client id. The application always defines it, and only in the case where the front is not
-  //    synthesized with backend, they would be different from [id].
-  // - id: Unique id. If object was not synthesized with backend, it would be empty.
-  // - nmae: user's name.
-  // - css_map: Map used for representing avatar feature.
-  //========================================
-  // people Object API End
-  //========================================
+  // Each person is represented by a person object.
+  // Person objects provide the following methods:
+  //   * get_is_user() - return true if object is the current user
+  //   * get_is_anon() - return true if object is anonymous
+  //
+  // The attributes for a person object include:
+  //   * cid - string client id. This is always defined, and
+  //     is only different from the id attribute
+  //     if the client data is not synced with the backend.
+  //   * id - the unique id. This may be undefined if the
+  //     object is not synced with the backend.
+  //   * name - the string name of the user.
+  //   * css_map - a map of attributes used for avatar
+  //     presentation.
+  //
   personProto = {
     get_is_user : function () {
       return this.cid === stateMap.user.cid;
@@ -103,7 +99,6 @@ spa.model = (function () {
     stateMap.user.id      = user_map._id;
     stateMap.user.css_map = user_map.css_map;
     stateMap.people_cid_map[ user_map._id ] = stateMap.user;
-
     chat.join();
     $.gevent.publish( 'spa-login', [ stateMap.user ] );
   };
@@ -183,7 +178,6 @@ spa.model = (function () {
       clearPeopleDb();
 
       $.gevent.publish( 'spa-logout', [ user ] );
-      return is_removed;
     };
 
     return {
@@ -195,164 +189,175 @@ spa.model = (function () {
     };
   }());
 
-  // chat Object API
-  // ========================================
-  // chat Object can be used with [spa.model.chat]
-  // chat Object provides method and events that handle chat messaging.
-  // public methods are as follow
-  // - join (): Join chat room. This routine establishes the event publisher for
-  //    [spa-listchange], [spa-updatechat] that build chat protocol including
-  //    communicating backend server.
-  //    Returns [false] when current user is anonymous.
-  // - get_chatee(): Returns the user object with whom user is chatting.
-  //    If user is not found in list, returns, [null].
-  // - set_chatee(): Set the target chatee identified with [person_id].
-  //    Returns [null] if user is not found.
-  //    Returns [false] if setee is the same user.
-  //    Publishes [spa-setchatee] event.
-  // - send_msg([msg_text]): Sends chat message to the target user.
-  //    Publishes [spa-updatechat] event.
-  //    Returns [false] if the target user is null.
-  // - update_avatar([update_avtr_map]): Sends backend [update_avtr_map] object.
-  //    As a consequence, [spa-listchange] event will be published containing
-  //    updated user list and avatar data.
-  //    [update_avtr_map] format must be:
-  //      { person_id: person_id, css_map: css_map }
+  // The chat object API
+  // -------------------
+  // The chat object is available at spa.model.chat.
+  // The chat object provides methods and events to manage
+  // chat messaging. Its public methods include:
+  //  * join() - joins the chat room. This routine sets up
+  //    the chat protocol with the backend including publishers
+  //    for 'spa-listchange' and 'spa-updatechat' global
+  //    custom events. If the current user is anonymous,
+  //    join() aborts and returns false.
+  //  * get_chatee() - return the person object with whom the user
+  //    is chatting with. If there is no chatee, null is returned.
+  //  * set_chatee( <person_id> ) - set the chatee to the person
+  //    identified by person_id. If the person_id does not exist
+  //    in the people list, the chatee is set to null. If the
+  //    person requested is already the chatee, it returns false.
+  //    It publishes a 'spa-setchatee' global custom event.
+  //  * send_msg( <msg_text> ) - send a message to the chatee.
+  //    It publishes a 'spa-updatechat' global custom event.
+  //    If the user is anonymous or the chatee is null, it
+  //    aborts and returns false.
+  //  * update_avatar( <update_avtr_map> ) - send the
+  //    update_avtr_map to the backend. This results in an
+  //    'spa-listchange' event which publishes the updated
+  //    people list and avatar information (the css_map in the
+  //    person objects). The update_avtr_map must have the form
+  //    { person_id : person_id, css_map : css_map }.
   //
-  // This Object publishes the events as follow...
-  // - spa-setchatee: Will be published when new target user is set.
-  //    Provides data formatted as follows...
-  //      { old_chatee: old_chatee_person_object,
-  //        new_chatee: new_chatee_person_object }
-  // - spa-listchange: Published when online userlist changed.
-  //    Registerer should acquire the updated data from [people_db]
-  // - spa-updatechat: Published when new message is either sent or received.
-  //    Data format is as follows...
-  //      { dest_id: chatee_id,
-  //        dest_name: chatee_name,
-  //        sender_id: sender_id,
-  //        msg_text: message_content }
+  // jQuery global custom events published by the object include:
+  //  * spa-setchatee - This is published when a new chatee is
+  //    set. A map of the form:
+  //      { old_chatee : <old_chatee_person_object>,
+  //        new_chatee : <new_chatee_person_object>
+  //      }
+  //    is provided as data.
+  //  * spa-listchange - This is published when the list of
+  //    online people changes in length (i.e. when a person
+  //    joins or leaves a chat) or when their contents change
+  //    (i.e. when a person's avatar details change).
+  //    A subscriber to this event should get the people_db
+  //    from the people model for the updated data.
+  //  * spa-updatechat - This is published when a new message
+  //    is received or sent. A map of the form:
+  //      { dest_id   : <chatee_id>,
+  //        dest_name : <chatee_name>,
+  //        sender_id : <sender_id>,
+  //        msg_text  : <message_content>
+  //      }
+  //    is provided as data.
   //
   chat = (function () {
     var
       _publish_listchange, _publish_updatechat,
       _update_list, _leave_chat,
 
-      get_chatee, join_chat, send_msg, set_chatee, update_avatar,
+      get_chatee, join_chat, send_msg,
+      set_chatee, update_avatar,
 
       chatee = null;
 
-    // Begin Internal methods
-    _update_list = function (arg_list) {
+    // Begin internal methods
+    _update_list = function( arg_list ) {
       var i, person_map, make_person_map, person,
-        people_list = arg_list[0],
+        people_list      = arg_list[ 0 ],
         is_chatee_online = false;
 
       clearPeopleDb();
 
       PERSON:
-      for (i = 0; i < people_list.length; i++) {
-        person_map = people_list[i];
+      for ( i = 0; i < people_list.length; i++ ) {
+        person_map = people_list[ i ];
 
-        if (! person_map.name) { continue PERSON; }
+        if ( ! person_map.name ) { continue PERSON; }
 
-        // If user is identified, update the css_map and skip the rest.
-        if (stateMap.user && stateMap.user.id === person_map._id) {
+        // if user defined, update css_map and skip remainder
+        if ( stateMap.user && stateMap.user.id === person_map._id ) {
           stateMap.user.css_map = person_map.css_map;
           continue PERSON;
         }
 
         make_person_map = {
-          cid: person_map._id,
-          css_map: person_map.css_map,
-          id: person_map._id,
-          name: person_map.name
+          cid     : person_map._id,
+          css_map : person_map.css_map,
+          id      : person_map._id,
+          name    : person_map.name
         };
-        person = makePerson(make_person_map);
+        person = makePerson( make_person_map );
 
-        if (chatee && chatee.id === make_person_map.id) {
+        if ( chatee && chatee.id === make_person_map.id ) {
           is_chatee_online = true;
           chatee = person;
         }
-
-        makePerson(make_person_map);
       }
 
-      stateMap.people_db.sort('name');
-      // Cancel the chatee if they are not online.
-      // As a result, [spa-setchatee] event will be published.
-      if (chatee && ! is_chatee_online) { set_chatee(''); }
+      stateMap.people_db.sort( 'name' );
+
+      // If chatee is no longer online, we unset the chatee
+      // which triggers the 'spa-setchatee' global event
+      if ( chatee && ! is_chatee_online ) { set_chatee(''); }
     };
 
-    _publish_listchange = function (arg_list) {
-      _update_list(arg_list);
-      $.gevent.publish('spa-listchange', [arg_list]);
+    _publish_listchange = function ( arg_list ) {
+      _update_list( arg_list );
+      $.gevent.publish( 'spa-listchange', [ arg_list ] );
     };
 
-    _publish_updatechat = function (arg_list) {
-      var msg_map = arg_list[0];
+    _publish_updatechat = function ( arg_list ) {
+      var msg_map = arg_list[ 0 ];
 
-      if (!chatee) { set_chatee(msg_map.sender_id); }
-      else if (msg_map.sender_id !== stateMap.user.id
+      if ( ! chatee ) { set_chatee( msg_map.sender_id ); }
+      else if ( msg_map.sender_id !== stateMap.user.id
         && msg_map.sender_id !== chatee.id
-      ) { set_chatee(msg_map.sender_id); }
+      ) { set_chatee( msg_map.sender_id ); }
 
-      $.gevent.publish('spa-updatechat', [ msg_map ]);
+      $.gevent.publish( 'spa-updatechat', [ msg_map ] );
     };
-    // End Internal methods
+    // End internal methods
 
     _leave_chat = function () {
-      var sio = isFakeData ? spa.fake.mockSio : spa.data.getsio();
-      chatee = null;
+      var sio = isFakeData ? spa.fake.mockSio : spa.data.getSio();
+      chatee  = null;
       stateMap.is_connected = false;
-      if (sio) { sio.emit('leavechat')};
+      if ( sio ) { sio.emit( 'leavechat' ); }
     };
 
     get_chatee = function () { return chatee; };
 
-    join_chat = function () {
+    join_chat  = function () {
       var sio;
 
-      if (stateMap.is_connected) { return false; }
+      if ( stateMap.is_connected ) { return false; }
 
-      if (stateMap.user.get_is_anon()) {
-        console.warn('User must be defined before joining chat');
+      if ( stateMap.user.get_is_anon() ) {
+        console.warn( 'User must be defined before joining chat');
         return false;
       }
 
       sio = isFakeData ? spa.fake.mockSio : spa.data.getSio();
-      sio.on('listchange', _publish_listchange);
-      sio.on('updatechat', _publish_updatechat);
+      sio.on( 'listchange', _publish_listchange );
+      sio.on( 'updatechat', _publish_updatechat );
       stateMap.is_connected = true;
       return true;
     };
 
-    send_msg = function (msg_text) {
+    send_msg = function ( msg_text ) {
       var msg_map,
         sio = isFakeData ? spa.fake.mockSio : spa.data.getSio();
 
-      if (!sio) { return false; }
-      if (!(stateMap.user && chatee)) { return false; }
+      if ( ! sio ) { return false; }
+      if ( ! ( stateMap.user && chatee ) ) { return false; }
 
       msg_map = {
-        dest_id: chatee.id,
-        dest_name: chatee.name,
-        sender_id: stateMap.user.id,
-        msg_text: msg_text,
+        dest_id   : chatee.id,
+        dest_name : chatee.name,
+        sender_id : stateMap.user.id,
+        msg_text  : msg_text
       };
 
-      // Since [updatechat] is supposed to be published,
-      // it's okay to display message.
-      _publish_updatechat([msg_map]);
-      sio.emit('updatechat', msg_map);
+      // we published updatechat so we can show our outgoing messages
+      _publish_updatechat( [ msg_map ] );
+      sio.emit( 'updatechat', msg_map );
       return true;
     };
 
-    set_chatee = function (person_id) {
+    set_chatee = function ( person_id ) {
       var new_chatee;
-      new_chatee = stateMap.people_cid_map[person_id];
-      if (new_chatee) {
-        if (chatee && chatee.id === new_chatee.id) {
+      new_chatee  = stateMap.people_cid_map[ person_id ];
+      if ( new_chatee ) {
+        if ( chatee && chatee.id === new_chatee.id ) {
           return false;
         }
       }
@@ -360,41 +365,37 @@ spa.model = (function () {
         new_chatee = null;
       }
 
-      $.gevent.publish('spa-setchatee',
-        { old_chatee: chatee, new_chatee: new_chatee }
+      $.gevent.publish( 'spa-setchatee',
+        { old_chatee : chatee, new_chatee : new_chatee }
       );
       chatee = new_chatee;
       return true;
     };
 
-    // [update_avatar] method should have data as follows...
-    // { person_id: [string],
-    //   css_map: {
-    //    top: [int],
-    //    left: [int],
-    //    'background-color': [string]
-    //   }
-    // };
-    update_avatar = function (avatar_update_map) {
+    // avatar_update_map should have the form:
+    // { person_id : <string>, css_map : {
+    //   top : <int>, left : <int>,
+    //   'background-color' : <string>
+    // }};
+    //
+    update_avatar = function ( avatar_update_map ) {
       var sio = isFakeData ? spa.fake.mockSio : spa.data.getSio();
-      if (sio) {
-        sio.emit('updateavatar', avatar_update_map);
+      if ( sio ) {
+        sio.emit( 'updateavatar', avatar_update_map );
       }
     };
 
     return {
-      _leave: _leave_chat,
-      get_chatee: get_chatee,
-      join: join_chat,
-      send_msg: send_msg,
-      set_chatee: set_chatee,
-      update_avatar: update_avatar,
+      _leave        : _leave_chat,
+      get_chatee    : get_chatee,
+      join          : join_chat,
+      send_msg      : send_msg,
+      set_chatee    : set_chatee,
+      update_avatar : update_avatar
     };
   }());
 
   initModule = function () {
-    var i, people_list, person_map;
-
     // initialize anonymous person
     stateMap.anon_user = makePerson({
       cid   : configMap.anon_id,

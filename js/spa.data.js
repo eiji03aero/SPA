@@ -1,6 +1,6 @@
 /*
  * spa.data.js
- * data feature module
+ * Data module
 */
 
 /*jslint         browser : true, continue : true,

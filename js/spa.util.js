@@ -1,64 +1,69 @@
 /*
-* spa.chat.js
-* 汎用JavaScriptユーティリティ
+ * spa.util.js
+ * General JavaScript utilities
+ *
+ * Michael S. Mikowski - mmikowski at gmail dot com
+ * These are routines I have created, compiled, and updated
+ * since 1998, with inspiration from around the web.
+ *
+ * MIT License
+ *
 */
 
-/* jslint browser: true, continue: true,
-devel: true, indent: 2, maxerr: 50,
-newcap: true, nomen: true, plusplus: true,
-regexp: true, sloppy: true, vars: false,
-white: true
+/*jslint          browser : true,  continue : true,
+  devel  : true,  indent  : 2,     maxerr   : 50,
+  newcap : true,  nomen   : true,  plusplus : true,
+  regexp : true,  sloppy  : true,  vars     : false,
+  white  : true
 */
+/*global $, spa */
 
-/*global $, spa*/
-
-spa.util = (function(){
+spa.util = (function () {
   var makeError, setConfigMap;
 
-  // begin public constructor /makeError/
-  // 目的：エラーオブジェクトを作成する便利なラッパー
-  // 引数：
-  // * name_text--エラー名
-  // * msg_text--長いエラーメッセージ
-  // * data--エラーオブジェクトに付加するオプションのデータ
-  // 戻り値：新たに作成されたエラーオブジェクト
-  // 例外発行：なし
+  // Begin Public constructor /makeError/
+  // Purpose: a convenience wrapper to create an error object
+  // Arguments:
+  //   * name_text - the error name
+  //   * msg_text  - long error message
+  //   * data      - optional data attached to error object
+  // Returns  : newly constructed error object
+  // Throws   : none
   //
-  makeError = function(name_text, msg_text, data) {
-    var error = new Error();
-    error.name = name_text;
+  makeError = function ( name_text, msg_text, data ) {
+    var error     = new Error();
+    error.name    = name_text;
     error.message = msg_text;
 
-    if (data){error.data = data;}
+    if ( data ){ error.data = data; }
 
     return error;
   };
-  // end public constructor /makeError/
+  // End Public constructor /makeError/
 
-  // begin public constructor /setConfigMap/
-  // 目的：機能モジュールで構成を行うための共通コード
-  // 引数：
-  // * input_map--構成するキーバリューマップ
-  // * settable:map--構成できるキーのマップ
-  // * config_map--構成を適用するマップ
-  // 戻り値：true
-  // 例外発行：入力キーが許可されていないあ場合は例外を発行する
+  // Begin Public method /setConfigMap/
+  // Purpose: Common code to set configs in feature modules
+  // Arguments:
+  //   * input_map    - map of key-values to set in config
+  //   * settable_map - map of allowable keys to set
+  //   * config_map   - map to apply settings to
+  // Returns: true
+  // Throws : Exception if input key not allowed
   //
-  setConfigMap = function(arg_map){
+  setConfigMap = function ( arg_map ){
     var
-      input_map = arg_map.input_map,
+      input_map    = arg_map.input_map,
       settable_map = arg_map.settable_map,
-      config_map = arg_map.config_map,
+      config_map   = arg_map.config_map,
       key_name, error;
 
-    for (key_name in input_map) {
-      if(input_map.hasOwnProperty(key_name)) {
-        if(settable_map.hasOwnProperty(key_name)) {
+    for ( key_name in input_map ){
+      if ( input_map.hasOwnProperty( key_name ) ){
+        if ( settable_map.hasOwnProperty( key_name ) ){
           config_map[key_name] = input_map[key_name];
         }
         else {
-          error = makeError(
-            'Bad Input',
+          error = makeError( 'Bad Input',
             'Setting config key |' + key_name + '| is not supported'
           );
           throw error;
@@ -66,9 +71,10 @@ spa.util = (function(){
       }
     }
   };
-  // end public constructor /setConfigMap/
+  // End Public method /setConfigMap/
+
   return {
-    makeError: makeError,
-    setConfigMap: setConfigMap
+    makeError    : makeError,
+    setConfigMap : setConfigMap
   };
 }());
