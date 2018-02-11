@@ -3,7 +3,6 @@
 var
   http = require('http'),
   express = require('express'),
-  basicAuth = require('basic-auth-connect'),
   morgan = require('morgan'),
   log4js = require('log4js'),
   bodyParser = require('body-parser'),
@@ -12,11 +11,11 @@ var
   app = express(),
   server = http.createServer(app),
 
-  routes = require('./routes');
+  routes = require('./lib/routes');
 
 app.configure( function () {
-  app.use(basicAuth('user', 'spa'));
   app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(bodyParser.json());
   app.use(methodOverride());
   app.use(express.static(__dirname + '/public'));
   app.use(app.router);

@@ -30,14 +30,14 @@ spa.data = (function () {
         });
       }
     };
+  }
 
-    getSio = function () {
-      if (! stateMap.sio) { stateMap.sio = makeSio(); }
-      return stateMap.sio;
-    };
+  getSio = function () {
+    if (! stateMap.sio) { stateMap.sio = makeSio(); }
+    return stateMap.sio;
+  };
 
   initModule = function () {};
-  }
   return {
     getSio: getSio,
     initModule: initModule
