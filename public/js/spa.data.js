@@ -14,7 +14,7 @@
 spa.data = (function () {
   'use strict';
   var
-    stateMap = { sio: null; },
+    stateMap = { sio: null },
     makeSio, getSio, initModule;
 
   makeSio = function () {
@@ -30,14 +30,14 @@ spa.data = (function () {
         });
       }
     };
-
-    getSio = function () {
-      if (! stateMap.sio) { stateMap.sio = makeSio(); }
-      return stateMap.sio;
-    };
-
-    initModule = function () {};
   }
+
+  getSio = function () {
+    if (! stateMap.sio) { stateMap.sio = makeSio(); }
+    return stateMap.sio;
+  };
+
+  initModule = function () {};
   return {
     getSio: getSio,
     initModule: initModule
