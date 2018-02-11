@@ -36,7 +36,7 @@ spa.data = (function () {
       return stateMap.sio;
     };
 
-    initModule = function () {};
+  initModule = function () {};
   }
   return {
     getSio: getSio,

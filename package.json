@@ -16,6 +16,7 @@
     "express": "3.2.x",
     "log4js": "^2.5.2",
     "method-override": "^2.3.10",
-    "morgan": "^1.9.0"
+    "morgan": "^1.9.0",
+    "socket.io": "0.9.x"
   }
 }

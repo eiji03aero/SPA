@@ -4,7 +4,7 @@ var configRoutes;
 
 configRoutes = function (app, server) {
   app.get('/', function (req, res) {
-    res.redirect('/spa.html');
+    res.redirect('./public/spa.html');
   });
 
   app.all('/:obj_type/*?', function (req, res, next) {
