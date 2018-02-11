@@ -24,7 +24,7 @@ spa.model = (function () {
       user           : null
     },
 
-    isFakeData = false,
+    isFakeData = true,
 
     personProto, makeCid, clearPeopleDb, completeLogin,
     makePerson, removePerson, people, chat, initModule;

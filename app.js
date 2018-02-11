@@ -1,52 +1,39 @@
-// var http, server;
-//
-// http = require('http');
-// server = http.createServer(function (req, res) {
-//   var response_text = req.url === '/test'
-//     ? 'you have hit the test page'
-//     : 'Hello world';
-//   res.writeHead(200, { 'Content-Type': 'text/plain' });
-//   res.end(response_text);
-// }).listen(3000);
-//
-// console.log('Listening on port %d', server.address().port);
-//
-// var
-//   connectHello, server,
-//   http = require('http'),
-//   connect = require('connect'),
-//   logger = require('connect-logger'),
-//   app = connect(),
-//   bodyText = 'Hello connect';
-//
-// connectHello = function (req, res, next) {
-//   res.setHeader('content-length', bodyText.length);
-//   res.end(bodyText);
-// };
-//
-// app
-//   .use(logger)
-//   .use(connectHello);
-// server = http.createServer(app);
-//
-// server.listen(3000);
-// console.log('started listening...');
-
 'use strict';
 
 var
   http = require('http'),
   express = require('express'),
+  basicAuth = require('basic-auth-connect'),
+  morgan = require('morgan'),
   log4js = require('log4js'),
-  logger = log4js.getLogger(),
+  bodyParser = require('body-parser'),
+  methodOverride = require('method-override'),
 
   app = express(),
-  server = http.createServer(app);
+  server = http.createServer(app),
 
-app.get('/', function (req, res) {
-  res.send('Hello express');
+  routes = require('./routes');
+
+app.configure( function () {
+  app.use(basicAuth('user', 'spa'));
+  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(methodOverride());
+  app.use(express.static(__dirname + '/public'));
+  app.use(app.router);
 });
 
+app.configure('development', function () {
+  app.use(morgan('dev'));
+  log4js.configure('config/log4js.json');
+  // var systemLogger = log4js.getLogger('system');
+  // systemLogger.info('kore ga domodomo %s', 'inserting my dick');
+});
+
+app.configure('production', function () {
+  app.use(express.errorHandler());
+});
+
+routes.configRoutes(app, server);
 
 server.listen(3000);
 console.log(

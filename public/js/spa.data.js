@@ -14,7 +14,7 @@
 spa.data = (function () {
   'use strict';
   var
-    stateMap = { sio: null; },
+    stateMap = { sio: null },
     makeSio, getSio, initModule;
 
   makeSio = function () {
